@@ -1,0 +1,63 @@
+name: Bootstrap Terraform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Ensure Bootstrap Bucket Exists (AWS CLI)
+        id: ensure_bucket
+        run: |
+          BUCKET_NAME="bootstrap-tf-state"
+          REGION="us-east-1"
+          if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
+            echo "Bucket exists"
+            echo "bucket_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Bucket does not exist, creating..."
+            aws s3api create-bucket \
+              --bucket $BUCKET_NAME \
+              --region $REGION \
+              --create-bucket-configuration LocationConstraint=$REGION
+            aws s3api put-bucket-encryption \
+              --bucket $BUCKET_NAME \
+              --server-side-encryption-configuration '{
+                "Rules": [{
+                  "ApplyServerSideEncryptionByDefault": {
+                    "SSEAlgorithm": "AES256"
+                  }
+                }]
+              }'
+            echo "bucket_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: latest
+
+      - name: Terraform Init & Apply (Bootstrap)
+        working-directory: infra-1/bootstrap
+        run: |
+          # Use local backend here so bootstrap can create S3 bucket
+          terraform init -backend=false
+          terraform validate
+          terraform plan
+          terraform apply -auto-approve
+
+      - name: Confirm Bootstrap Complete
+        run: |
+          echo "Bootstrap complete. S3 bucket and DynamoDB table are ready for main Terraform stack."
+
