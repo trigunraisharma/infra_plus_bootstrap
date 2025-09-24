@@ -81,4 +81,4 @@ jobs:
       # 7️⃣ Confirmation
       - name: Confirm Bootstrap Complete
         run: |
-          echo "Bootstrap complete. S3 bucket and DynamoDB table are ready for main Terraform stack."
+          echo "Bootstrap complete. S3 bucket is ready for main Terraform stack."
