@@ -20,7 +20,7 @@ jobs:
       - name: Ensure Bootstrap Bucket Exists (AWS CLI)
         id: ensure_bucket
         run: |
-          BUCKET_NAME="bootstrap-tf-state"
+          BUCKET_NAME="bootstrap-tf-state02"
           REGION="us-east-1"
 
           if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
