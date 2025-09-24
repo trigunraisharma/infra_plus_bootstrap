@@ -139,10 +139,10 @@ resource "aws_iam_role_policy_attachment" "ecs_task_attach_ssm" {
 # S3 Bucket Policy for CloudFront OAC
 ############################################
 # (assuming bucket already defined as aws_s3_bucket.react_app_bucket)
-resource "aws_s3_bucket" "my-react-node-app-bucket02" {
-  bucket        = "my-react-node-app-bucket02"
-  force_destroy = true
-}
+#resource "aws_s3_bucket" "my-react-node-app-bucket02" {
+  #bucket        = "my-react-node-app-bucket02"
+  #force_destroy = true
+#}
 
 resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
   bucket = aws_s3_bucket.my-react-node-app-bucket02.id
