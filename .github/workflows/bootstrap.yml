@@ -2,7 +2,9 @@ name: Bootstrap Terraform
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - main
 jobs:
   bootstrap:
     runs-on: ubuntu-latest

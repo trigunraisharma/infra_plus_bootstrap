@@ -5,12 +5,12 @@ provider "aws" {
 
 resource "aws_s3_bucket" "tf_state" {
   provider = aws.bootstrap
-  bucket   = "my-react-node-app-terraform-state-bootstrap"
+  bucket   = "bootstrap-tf-state02"
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "tf_state" {
   provider = aws.bootstrap
-  bucket   = "my-react-node-app-terraform-state-bootstrap"
+  bucket   = "bootstrap-tf-state02"
 
   rule {
     apply_server_side_encryption_by_default {

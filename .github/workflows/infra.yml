@@ -33,7 +33,7 @@ jobs:
 
       - name: Terraform Init (Main)
         working-directory: infra-1/main
-        run: terraform init
+        run: terraform init -reconfigure
 
       - name: Terraform Validate (Main)
         working-directory: infra-1/main
