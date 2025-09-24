@@ -22,26 +22,36 @@ jobs:
         run: |
           BUCKET_NAME="bootstrap-tf-state"
           REGION="us-east-1"
+
           if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
             echo "Bucket exists"
             echo "bucket_exists=true" >> $GITHUB_OUTPUT
           else
             echo "Bucket does not exist, creating..."
+            if [ "$REGION" = "us-east-1" ]; then
+              aws s3api create-bucket \
+                --bucket $BUCKET_NAME \
+                --region $REGION
+          else
             aws s3api create-bucket \
               --bucket $BUCKET_NAME \
               --region $REGION \
               --create-bucket-configuration LocationConstraint=$REGION
-            aws s3api put-bucket-encryption \
-              --bucket $BUCKET_NAME \
-              --server-side-encryption-configuration '{
-                "Rules": [{
-                  "ApplyServerSideEncryptionByDefault": {
-                    "SSEAlgorithm": "AES256"
-                  }
-                }]
-              }'
-            echo "bucket_exists=false" >> $GITHUB_OUTPUT
           fi
+
+          aws s3api put-bucket-encryption \
+            --bucket $BUCKET_NAME \
+            --server-side-encryption-configuration '{
+              "Rules": [{
+                "ApplyServerSideEncryptionByDefault": {
+                  "SSEAlgorithm": "AES256"
+                }
+              }]
+            }'
+
+          echo "bucket_exists=false" >> $GITHUB_OUTPUT
+          fi
+
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -60,4 +70,3 @@ jobs:
       - name: Confirm Bootstrap Complete
         run: |
           echo "Bootstrap complete. S3 bucket and DynamoDB table are ready for main Terraform stack."
-
