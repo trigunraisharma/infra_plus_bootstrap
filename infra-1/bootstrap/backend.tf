@@ -4,6 +4,5 @@ terraform {
     key     = "infra_plus_bootstrap/terraform.tfstate"                           # path inside the bucket
     region  = "us-east-1"
     encrypt = true
-    use_lockfile = true
   }
 }
