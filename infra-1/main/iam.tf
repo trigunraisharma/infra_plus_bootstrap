@@ -145,7 +145,7 @@ resource "aws_iam_role_policy_attachment" "ecs_task_attach_ssm" {
 #}
 
 resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
-  bucket = aws_s3_bucket.my-react-node-app-bucket02.id
+  bucket = data.aws_s3_bucket.my_bucket.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -157,7 +157,7 @@ resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
           Service = "cloudfront.amazonaws.com"
         }
         Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.my-react-node-app-bucket02.arn}/*"
+        Resource = "${data.aws_s3_bucket.my_bucket.arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.s3_distribution.arn
