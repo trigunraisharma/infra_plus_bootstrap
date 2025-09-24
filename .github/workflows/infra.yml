@@ -1,12 +1,14 @@
 name: Deploy Main Infrastructure
 
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Bootstrap Terraform"]
+    types:
+      - completed
 
 jobs:
   infra:
     runs-on: ubuntu-latest
-    needs: bootstrap
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,13 +33,7 @@ jobs:
 
       - name: Terraform Init (Main)
         working-directory: infra-1/main
-        run: |
-          terraform init \
-            -backend-config="bucket=bootstrap-tf-state" \
-            -backend-config="key=terraform.tfstate" \
-            -backend-config="region=us-east-1" \
-            -backend-config="dynamodb_table=tf-lock" \
-            -reconfigure
+        run: terraform init
 
       - name: Terraform Validate (Main)
         working-directory: infra-1/main
@@ -50,4 +46,3 @@ jobs:
       - name: Terraform Apply (Main)
         working-directory: infra-1/main
         run: terraform apply -auto-approve -var-file=dev.tfvars
-
