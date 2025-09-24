@@ -1,7 +1,7 @@
 resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/${var.name}/s3_bucket"
   type  = "String"
-  value = aws_s3_bucket.my-react-node-app-bucket02.bucket
+  value = data.aws_s3_bucket.my_bucket.bucket
 }
 
 resource "aws_ssm_parameter" "cloudfront_id" {
