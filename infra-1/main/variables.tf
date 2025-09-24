@@ -32,11 +32,6 @@ variable "bucket_name" {
   type        = string
 }
 
-#variable "container_image" {
-#description = "ECR container image URL for backend"
-#type        = string
-#}
-
 variable "app_port" {
   description = "Backend container port"
   type        = number
