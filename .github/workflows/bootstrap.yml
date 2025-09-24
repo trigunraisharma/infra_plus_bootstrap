@@ -73,7 +73,7 @@ jobs:
       - name: Terraform Init & Apply (Bootstrap)
         working-directory: infra-1/bootstrap
         run: |
-          terraform init -backend=false
+          terraform init
           terraform validate
           terraform plan
           terraform apply -auto-approve
