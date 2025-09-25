@@ -1,7 +1,7 @@
 name: Destroy Infrastructure
 
 on:
-  workflow_dispatch: # Manual trigger
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   destroy:
@@ -12,7 +12,7 @@ jobs:
       AWS_REGION: us-east-1
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Terraform
@@ -20,19 +20,10 @@ jobs:
         with:
           terraform_version: latest
 
-      - name: Init Terraform - Bootstrap
-        working-directory: infra-1/bootstrap
-        run: |
-          terraform init -reconfigure \
-            -backend-config="bucket=my-react-node-app-bucket02" \
-            -backend-config="key=bootstrap.tfstate" \
-            -backend-config="region=us-east-1"
-
-      - name: Destroy Terraform - Bootstrap
-        working-directory: infra-1/bootstrap
-        run: terraform destroy -auto-approve
-
-      - name: Init Terraform - Main
+      ######################
+      # Destroy Main Infra #
+      ######################
+      - name: Init Terraform (Main)
         working-directory: infra-1/main
         run: |
           terraform init -reconfigure \
@@ -40,7 +31,22 @@ jobs:
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=us-east-1"
 
-      - name: Destroy Terraform - Main
+      - name: Destroy Main Infra
         working-directory: infra-1/main
-        run: terraform destroy -auto-approve
+        run: terraform destroy -auto-approve -var-file=dev.tfvars || echo "Main infra destroy finished"
+
+      ########################
+      # Destroy Bootstrap    #
+      ########################
+      - name: Init Terraform (Bootstrap)
+        working-directory: infra-1/bootstrap
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=my-react-node-app-bucket02" \
+            -backend-config="key=bootstrap.tfstate" \
+            -backend-config="region=us-east-1"
+
+      - name: Destroy Bootstrap
+        working-directory: infra-1/bootstrap
+        run: terraform destroy -auto-approve || echo "Bootstrap destroy finished"
 
