@@ -1,7 +1,7 @@
 name: Destroy Infrastructure
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger
 
 jobs:
   destroy:
@@ -10,6 +10,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: us-east-1
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -18,26 +19,28 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: latest
-# Destroy bootstrap resources
+
       - name: Init Terraform - Bootstrap
         working-directory: infra-1/bootstrap
-        run: terraform init -reconfigure \
-          -backend-config="bucket=my-react-node-app-bucket02" \
-          -backend-config="key=bootstrap.tfstate" \
-          -backend-config="region=us-east-1"
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=my-react-node-app-bucket02" \
+            -backend-config="key=bootstrap.tfstate" \
+            -backend-config="region=us-east-1"
 
       - name: Destroy Terraform - Bootstrap
         working-directory: infra-1/bootstrap
         run: terraform destroy -auto-approve
 
-      # Destroy main resources
       - name: Init Terraform - Main
         working-directory: infra-1/main
-        run: terraform init -reconfigure \
-          -backend-config="bucket=my-react-node-app-bucket02" \
-          -backend-config="key=terraform.tfstate" \
-          -backend-config="region=us-east-1"
+        run: |
+          terraform init -reconfigure \
+            -backend-config="bucket=my-react-node-app-bucket02" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=us-east-1"
 
       - name: Destroy Terraform - Main
         working-directory: infra-1/main
-        run: terraform destroy -auto-approve -var-file=dev.tfvars
+        run: terraform destroy -auto-approve
+
