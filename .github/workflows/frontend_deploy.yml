@@ -2,9 +2,6 @@ name: Frontend Deploy (S3/CloudFront)
 
 on:
   workflow_run:
-    workflows: ["Backend Deploy (ECS/ECR)"]
-    types:
-      - completed
 
 jobs:
   frontend:

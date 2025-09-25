@@ -2,9 +2,6 @@ name: Deploy Main Infrastructure
 
 on:
   workflow_run:
-    workflows: ["Bootstrap Terraform"]
-    types:
-      - completed
 
 jobs:
   infra:
