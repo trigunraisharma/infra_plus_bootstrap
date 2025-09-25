@@ -23,7 +23,10 @@ jobs:
         working-directory: infra-1/main
         run: terraform init -reconfigure -backend-config="bucket=my-react-node-app-bucket02" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
 
+      - name: Init Terraform
+        working-directory: infra-1/bootstrap
+        run: terraform init -reconfigure
+
       - name: Destroy Infra
-        working-directory: infra-1/main
-        run: terraform destroy -auto-approve -var-file=dev.tfvars
+        run: terraform destroy -auto-approve
 
