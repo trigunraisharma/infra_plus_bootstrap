@@ -1,11 +1,21 @@
-name: Deploy Main Infrastructure
+name: Terraform Infrastructure
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
-  infra:
+  # -----------------------------
+  # Job 1: Deploy Main Infrastructure
+  # -----------------------------
+  deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra-1/main
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
     steps:
       # 1️⃣ Checkout code
       - name: Checkout code
@@ -25,7 +35,7 @@ jobs:
         with:
           terraform_version: latest
 
-      # 4️⃣ Cache Terraform providers and .terraform
+      # 4️⃣ Cache Terraform providers
       - name: Cache Terraform Providers
         uses: actions/cache@v4
         with:
@@ -34,7 +44,7 @@ jobs:
             infra-1/main/.terraform
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
 
-      # 5️⃣ Wait for S3 bucket propagation
+      # 5️⃣ Wait for S3 bucket propagation (if needed)
       - name: Wait for S3 bucket
         run: |
           BUCKET_NAME="my-react-node-app-bucket02"
@@ -48,54 +58,58 @@ jobs:
             fi
           done
 
-      # 6️⃣ Terraform Init (Main) with remote backend
-      - name: Terraform Init (Main)
-        working-directory: infra-1/main
+      # 6️⃣ Terraform Init
+      - name: Terraform Init
         run: terraform init -reconfigure
 
       # 7️⃣ Terraform Validate
-      - name: Terraform Validate (Main)
-        working-directory: infra-1/main
+      - name: Terraform Validate
         run: terraform validate
 
       # 8️⃣ Terraform Plan
-      - name: Terraform Plan (Main)
-        working-directory: infra-1/main
+      - name: Terraform Plan
         run: terraform plan -var-file=dev.tfvars
 
       # 9️⃣ Terraform Apply
-      - name: Terraform Apply (Main)
-        working-directory: infra-1/main
+      - name: Terraform Apply
         run: terraform apply -auto-approve -var-file=dev.tfvars
 
-destroy:
+  # -----------------------------
+  # Job 2: Destroy Infrastructure
+  # -----------------------------
+  destroy:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: infra-1
+        working-directory: infra-1/main
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
-
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: latest
 
-      - name: Cache Terraform providers
+      # 3️⃣ Cache Terraform providers
+      - name: Cache Terraform Providers
         uses: actions/cache@v4
         with:
           path: ~/.terraform.d/plugin-cache
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
-      
-      - name: Terraform Init
-        run: terraform init -upgrade
 
+      # 4️⃣ Terraform Init
+      - name: Terraform Init
+        run: terraform init -reconfigure -backend-config="bucket=my-react-node-app-bucket02" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
+
+      # 5️⃣ Terraform Destroy
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve
+        run: terraform destroy -auto-approve -var-file=dev.tfvars
+
