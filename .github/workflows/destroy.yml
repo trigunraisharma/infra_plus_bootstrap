@@ -17,20 +17,27 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.9.5
-
-      - name: Init Terraform
-        working-directory: infra-1/main
-        run: terraform init -reconfigure -backend-config="bucket=my-react-node-app-bucket02" -backend-config="key=terraform.tfstate" -backend-config="region=us-east-1"
-
-      - name: Init Terraform
+          terraform_version: latest
+# Destroy bootstrap resources
+      - name: Init Terraform - Bootstrap
         working-directory: infra-1/bootstrap
-        run: terraform init -reconfigure
+        run: terraform init -reconfigure \
+          -backend-config="bucket=my-react-node-app-bucket02" \
+          -backend-config="key=bootstrap.tfstate" \
+          -backend-config="region=us-east-1"
 
-      - name: Destroy Infra
-        working-directory: infra-1/main
-        run: terraform destroy -auto-approve
-
-      - name: Destroy Infra
+      - name: Destroy Terraform - Bootstrap
         working-directory: infra-1/bootstrap
         run: terraform destroy -auto-approve
+
+      # Destroy main resources
+      - name: Init Terraform - Main
+        working-directory: infra-1/main
+        run: terraform init -reconfigure \
+          -backend-config="bucket=my-react-node-app-bucket02" \
+          -backend-config="key=terraform.tfstate" \
+          -backend-config="region=us-east-1"
+
+      - name: Destroy Terraform - Main
+        working-directory: infra-1/main
+        run: terraform destroy -auto-approve -var-file=dev.tfvars
