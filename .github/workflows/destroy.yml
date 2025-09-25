@@ -1,7 +1,7 @@
 name: Destroy Infrastructure
 
 on:
-  workflow_dispatch: # allows manual trigger
+  workflow_dispatch:
 
 jobs:
   destroy:

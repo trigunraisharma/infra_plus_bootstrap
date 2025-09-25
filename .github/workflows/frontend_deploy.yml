@@ -1,7 +1,7 @@
 name: Frontend Deploy (S3/CloudFront)
 
 on:
-  workflow_run:
+  workflow_dispatch:
 
 jobs:
   frontend:
