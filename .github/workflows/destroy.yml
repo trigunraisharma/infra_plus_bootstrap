@@ -28,5 +28,9 @@ jobs:
         run: terraform init -reconfigure
 
       - name: Destroy Infra
+        working-directory: infra-1/main
         run: terraform destroy -auto-approve
 
+      - name: Destroy Infra
+        working-directory: infra-1/bootstrap
+        run: terraform destroy -auto-approve
