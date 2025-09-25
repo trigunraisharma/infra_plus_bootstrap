@@ -1,64 +1,44 @@
 ####################################################
-# Get current AWS account info (needed for ARNs)
+# Get current AWS account info
 ####################################################
 data "aws_caller_identity" "current" {}
 
-#create iam role for ECS task execution
-resource "aws_iam_role" "ecs-execution-role" {
+data "aws_s3_bucket" "my_bucket" {
+  bucket = var.bucket_name
+}
+
+####################################################
+# ECS Execution Role
+####################################################
+resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs-execution-role"
 
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
+        Sid = "ECSExecutionAssumeRole"
         Effect = "Allow"
-        Sid    = "ECSExecutionAssumeRole"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      },
+        Action = "sts:AssumeRole"
+        Principal = { Service = "ecs-tasks.amazonaws.com" }
+      }
     ]
   })
 
   tags = { Environment = "dev", Project = var.name }
 }
 
-# Attach AWS managed policy for ECS execution
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
-  role       = aws_iam_role.ecs-execution-role.name
+  role       = aws_iam_role.ecs_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-
 }
 
-#AmazonEC2ContainerRegistryFullAccess
+####################################################
+# ECS User ECR Policy
+####################################################
 resource "aws_iam_policy" "ecs_user_ecr_policy" {
-  name        = "ecs-user-ecr-policy"
-  description = "Allow ecs_user to manage ECR for backend repo"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:DescribeRepositories",
-          "ecr:DescribeImages",
-          "ecr:GetAuthorizationToken",
-          "ecr:CreateRepository",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload"
-        ]
-        Resource = "arn:aws:ecr:us-east-1:203918840508:repository/my-react-node-app-repo"
-      }
-    ]
-  })
+  name   = "ecs-user-ecr-policy"
+  policy = file("${path.module}/policies/ecs-user-ecr-policy.json")
 }
 
 resource "aws_iam_user_policy_attachment" "ecs_user_ecr_custom" {
@@ -66,9 +46,9 @@ resource "aws_iam_user_policy_attachment" "ecs_user_ecr_custom" {
   policy_arn = aws_iam_policy.ecs_user_ecr_policy.arn
 }
 
-
-# ECS Task Role (Your Node.js app inside ECS)
-############################################
+####################################################
+# ECS Task Role
+####################################################
 resource "aws_iam_role" "ecs_task_role" {
   name = "ecs-task-role"
 
@@ -76,33 +56,29 @@ resource "aws_iam_role" "ecs_task_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "ECSTaskAssumeRole"
+        Sid = "ECSTaskAssumeRole"
         Effect = "Allow"
         Action = "sts:AssumeRole"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
+        Principal = { Service = "ecs-tasks.amazonaws.com" }
       }
     ]
   })
 }
 
-# Example: Allow Node app to read objects from S3 (adjust bucket name)
+# ECS Task Policies
 resource "aws_iam_policy" "ecs_task_s3_policy" {
-  name        = "ecs-task-s3-access"
-  description = "Allow ECS tasks to read from S3 app bucket"
+  name   = "ecs-task-s3-access"
+  policy = file("${path.module}/policies/ecs-task-s3-policy.json")
+}
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "AllowS3Read"
-        Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:ListBucket"]
-        Resource = "arn:aws:s3:::my-react-node-app-bucket02/*"
-      }
-    ]
-  })
+resource "aws_iam_policy" "ecs_task_ssm_policy" {
+  name   = "ecs-task-ssm-access"
+  policy = file("${path.module}/policies/ecs-task-ssm-policy.json")
+}
+
+resource "aws_iam_policy" "ssm_access" {
+  name   = "TerraformSSMAccess"
+  policy = file("${path.module}/policies/terraform-ssm-access.json")
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_attach_s3" {
@@ -110,40 +86,19 @@ resource "aws_iam_role_policy_attachment" "ecs_task_attach_s3" {
   policy_arn = aws_iam_policy.ecs_task_s3_policy.arn
 }
 
-# ECS Task SSM Policy
-resource "aws_iam_policy" "ecs_task_ssm_policy" {
-  name        = "ecs-task-ssm-access"
-  description = "Allow ECS tasks to read SSM parameters"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Sid      = "AllowSSMRead"
-        Effect   = "Allow"
-        Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:DescribeParameters", "ssm:ListTagsForResource"]
-        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.name}/*"
-      }
-    ]
-  })
-}
-
-# Attach ECS Task Policies
 resource "aws_iam_role_policy_attachment" "ecs_task_attach_ssm" {
   role       = aws_iam_role.ecs_task_role.name
   policy_arn = aws_iam_policy.ecs_task_ssm_policy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "attach_ssm" {
+  role       = aws_iam_role.ecs_task_role.name
+  policy_arn = aws_iam_policy.ssm_access.arn
+}
 
-############################################
-# S3 Bucket Policy for CloudFront OAC
-############################################
-# (assuming bucket already defined as aws_s3_bucket.react_app_bucket)
-#resource "aws_s3_bucket" "my-react-node-app-bucket02" {
-  #bucket        = "my-react-node-app-bucket02"
-  #force_destroy = true
-#}
-
+####################################################
+# S3 Bucket Policy for CloudFront
+####################################################
 resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
   bucket = data.aws_s3_bucket.my_bucket.id
 
@@ -153,48 +108,11 @@ resource "aws_s3_bucket_policy" "my-react-node-app-bucket02" {
       {
         Sid    = "AllowCloudFrontGetObject"
         Effect = "Allow"
-        Principal = {
-          Service = "cloudfront.amazonaws.com"
-        }
+        Principal = { Service = "cloudfront.amazonaws.com" }
         Action   = "s3:GetObject"
         Resource = "${data.aws_s3_bucket.my_bucket.arn}/*"
-        Condition = {
-          StringEquals = {
-            "AWS:SourceArn" = aws_cloudfront_distribution.s3_distribution.arn
-          }
-        }
+        Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.s3_distribution.arn } }
       }
     ]
   })
-}
-
-#Terraform applying SSM parameters
-resource "aws_iam_policy" "ssm_access" {
-  name        = "TerraformSSMAccess"
-  description = "Allow Terraform to manage SSM parameters for my React-Node app"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ssm:PutParameter",
-          "ssm:GetParameter",
-          "ssm:GetParameters",
-          "ssm:DeleteParameter",
-          "ssm:DescribeParameters",
-          "ssm:ListTagsForResource",
-        ],
-        Resource = [
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/my-react-node-app/*"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "attach_ssm" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = aws_iam_policy.ssm_access.arn
 }
